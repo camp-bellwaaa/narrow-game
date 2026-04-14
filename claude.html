@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Claude Canvas Assistant</title>
+    <script src="https://tailwindcss.com"></script>
+</head>
+<body class="bg-[#f0f0f0] h-screen flex flex-col font-sans">
+    <header class="bg-[#d97757] text-white p-4 shadow-md font-bold">Claude Assistant</header>
+
+    <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4 bg-white m-4 rounded-lg shadow-inner">
+        <!-- Messages appear here -->
+    </div>
+
+    <div class="p-4 bg-white border-t border-gray-200">
+        <form id="chat-form" class="flex gap-2">
+            <input id="user-input" type="text" placeholder="Ask Claude anything..." 
+                   class="flex-1 border p-2 rounded focus:outline-none focus:ring-2 focus:ring-[#d97757]">
+            <button type="submit" class="bg-[#d97757] text-white px-6 py-2 rounded hover:bg-[#bf5b3d] transition-colors">Send</button>
+        </form>
+    </div>
+
+    <script>
+        const chatForm = document.getElementById('chat-form');
+        const chatBox = document.getElementById('chat-box');
+        const userInput = document.getElementById('user-input');
+
+        // IMPORTANT: Hide this key in a production environment!
+        const API_KEY = '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'; 
+
+        chatForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            appendMsg(message, 'user');
+            userInput.value = '';
+
+            try {
+                const response = await fetch('https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: {
+                        'x-api-key': API_KEY,
+                        'anthropic-version': '2023-06-01', // Required header
+                        'content-type': 'application/json',
+                        'anthropic-dangerous-direct-browser-access': 'true' // Allows browser calls
+                    },
+                    body: JSON.stringify({
+                        model: "claude-3-5-sonnet-20241022", // Latest powerful model
+                        max_tokens: 1024,
+                        messages: [{ role: "user", content: message }]
+                    })
+                });
+
+                const data = await response.json();
+                const aiResponse = data.content[0].text; // Messages API structure
+                appendMsg(aiResponse, 'claude');
+            } catch (err) {
+                appendMsg("System: Failed to connect. Check key/internet.", 'error');
+                console.error(err);
+            }
+        };
+
+        function appendMsg(text, role) {
+            const div = document.createElement('div');
+            const color = role === 'user' ? 'bg-blue-100' : (role === 'error' ? 'bg-red-100' : 'bg-orange-50');
+            const align = role === 'user' ? 'text-right' : 'text-left';
+            div.className = `${align}`;
+            div.innerHTML = `<span class="inline-block p-3 rounded-lg shadow-sm ${color} max-w-[80%] border border-gray-200">${text}</span>`;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    </script>
+</body>
+</html>
